@@ -1,9 +1,8 @@
 import numpy as np
 from os.path import join
-import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from src.utils import PROJECT_DIR,s_timestamp
+from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_
 
 class Instance:
 
@@ -16,20 +15,11 @@ class Instance:
     def get(self,idx_node):
         return self.x[self.n_time_points*idx_node:self.n_time_points*(idx_node+1)],self.y[self.n_nodes*idx_node:self.n_nodes*(idx_node+1)]
 
-    def getnxDiGraph(self):
-        G = nx.DiGraph()
-        ebunch = [(k,i,self.y[self.n_nodes*i+k]) for i in range(self.n_nodes) for k in range(self.n_nodes) if self.y[self.n_nodes*i+k]!=0]
-        G.add_weighted_edges_from(ebunch)
-        return G,ebunch
+    def getebunch(self):
+        return [(k,i,self.y[self.n_nodes*i+k]) for i in range(self.n_nodes) for k in range(self.n_nodes) if self.y[self.n_nodes*i+k]!=0]
 
     def plotGraph_(self,cmap):
-        G,ebunch = self.getnxDiGraph()
-        pos=nx.shell_layout(G)
-        nx.draw_networkx_nodes(G,pos,node_color=range(G.number_of_nodes()),cmap=cmap,node_size=400)
-        nx.draw_networkx_edges(G,pos,edgelist=[(i,k) for i,k,w in ebunch if w > 0],edge_color='g',width=1)
-        nx.draw_networkx_edges(G,pos,edgelist=[(i,k) for i,k,w in ebunch if w < 0],edge_color='r',width=1)
-        nx.draw_networkx_labels(G,pos,{i:str(i+1) for i in range(G.number_of_nodes())},font_size=12)
-        plt.axis('off')
+        plotDiGraph_(self.n_nodes,self.getebunch(),cmap)
 
     def plotTimeSeries_(self,cmap):
         plt.xlabel('Time [min]')
@@ -69,10 +59,17 @@ class Dataset:
                 pdf.savefig()  # saves the current figure into a pdf page
                 plt.close()
 
-def load():
+def load(n_instances=-1):
     X, Y = np.loadtxt(join(PROJECT_DIR,'data','out_X.csv'), delimiter=","),np.loadtxt(join(PROJECT_DIR,'data','out_Y.csv'), delimiter=",")
+    if n_instances != -1:
+        X = X[:n_instances]
+        Y = Y[:n_instances]
+    return Dataset(X,Y)
+
+def loadEGFR():
+    X, Y = np.loadtxt(join(PROJECT_DIR,'data','out_egfr_X.csv'), delimiter=",").reshape((1,-1)),np.loadtxt(join(PROJECT_DIR,'data','out_egfr_Y.csv'), delimiter=",").reshape((1,-1))
     return Dataset(X,Y)
 
 if __name__ == "__main__":
-    d = load()
+    d = loadEGFR()
     d.plotAll()
