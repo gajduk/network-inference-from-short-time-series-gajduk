@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pylab as plt
 from methods import methods
-from datasets import load,loadEGFR
+from datasets import load,loadEGFR,loadOscilatory
 from sklearn.metrics import roc_curve,auc
-from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_
+from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_,getFeedbackLinks,getForwardLinks
 from os.path import join
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -39,44 +39,100 @@ def evaluateMethod(dataset,method,normalize=False):
 		combined_y_pred[i,:] = y_pred
 	return combined_y_true,combined_y_pred
 
-
-def evaluateAll(d,normalize=True,predict_n=20):
-	res = "{0: <20}          {1: <19}\n".format(" ","auc")
-	predictions = {}
+def evaluateCombinedTotalRocCurves(predictions,true,methods):
+	res = "{0: <20}          {1: <19} {2: <19} {3: <19}\n".format(" ","auc","auc forward","auc feedbacks")
+	plt.figure(figsize=(35,12))
 	for f in methods:
-		y_true,y_pred = evaluateMethod(d,methods[f],normalize=normalize)
-		predictions[f] = y_pred
+		y_true,y_pred = true[f],predictions[f]
+		feedbacks_y_true = np.reshape([getFeedbackLinks(temp) for temp in y_true], (-1, 1))
+		feedbacks_y_pred = np.reshape([getFeedbackLinks(temp) for temp in y_pred], (-1, 1))
+		forward_y_true = np.reshape([getForwardLinks(temp) for temp in y_true], (-1, 1))
+		forward_y_pred = np.reshape([getForwardLinks(temp) for temp in y_pred], (-1, 1))
 		combined_y_pred = np.reshape(y_pred,(-1,1))
 		combined_y_true = np.reshape(y_true,(-1,1))
-		fpr,tpr,_ = roc_curve(combined_y_true,combined_y_pred)
-		roc_auc = auc(fpr, tpr)
-		res += "{0: <20} {1:16.3f}\n".format(f,roc_auc)
-		plt.plot(fpr, tpr, label=f+' (auc = %0.2f)' % roc_auc)
+		plt.subplot(1,3,1)
+		roc_auc = plotROC(combined_y_true,combined_y_pred,f)
+		plt.title('ROC for feedbacks only')
+		plt.subplot(1,3,2)
+		roc_auc_forward = plotROC(forward_y_true,forward_y_pred,f)
+		plt.title('ROC for forward only')
+		plt.subplot(1,3,3)
+		roc_auc_feedbacks = plotROC(feedbacks_y_true,feedbacks_y_pred,f)
+		res += "{0: <20} {1:16.3f} {2:16.3f}  {3: <19}\n".format(f,roc_auc,roc_auc_forward,roc_auc_feedbacks)
+	plt.savefig(join(PROJECT_DIR,'output','evaluation',s_timestamp()+'.pdf'))
+	with open(join(PROJECT_DIR,'output','evaluation',s_timestamp()+'.txt'),'w') as pout:
+		pout.write(res)
+
+def plotROC(y_true,y_pred,label):
+	fpr,tpr,_ = roc_curve(y_true,y_pred)
+	roc_auc = auc(fpr, tpr)
+	plt.plot(fpr, tpr, label=label+' (auc = %0.2f)' % roc_auc)
 	plt.legend(loc="lower right")
 	plt.xlim([0.0, 1.0])
 	plt.ylim([0.0, 1.05])
 	plt.xlabel('False Positive Rate')
 	plt.ylabel('True Positive Rate')
-	plt.savefig(join(PROJECT_DIR,'output','evaluation',s_timestamp()+'.pdf'))
-	with open(join(PROJECT_DIR,'output','evaluation',s_timestamp()+'.txt'),'w') as pout:
-		pout.write(res)
+	return roc_auc
+
+def plotPredicted(y_pred,label,predict_n,cmap,n_nodes):
+	y_pred[np.argsort(y_pred)[:-predict_n]] = 0
+	ebunch = [(k,i,y_pred[n_nodes*i+k]) for i in range(n_nodes) for k in range(n_nodes) if y_pred[n_nodes*i+k]!=0]
+	plotDiGraph_(n_nodes,ebunch,cmap,500,14)
+	plt.title(label)
+
+def evaluateIndividualRocCurvesAndPredictions(d,predictions,true,predict_n,methods):
 	with PdfPages(join(PROJECT_DIR,'output','visualization_graph_predictions',s_timestamp()+'.pdf')) as pdf:
 		cmap = plt.cm.Accent
 		for idx_instance in range(d.n_instances):
-			n_nodes = d.get(idx_instance).n_nodes
+			instance = d.get(idx_instance)
+			n_nodes = instance.n_nodes
 			plt.figure(figsize=(40,20))
-			for subplot_idx,f in enumerate(predictions):
-				plt.subplot(3,4,subplot_idx+1)
+			for subplot_idx,f in enumerate(methods):
+				y_true = true[f][idx_instance][:]
 				y_pred = predictions[f][idx_instance][:]
-				y_pred[np.argsort(y_pred)[:-predict_n]] = 0
-				ebunch = [(k,i,y_pred[n_nodes*i+k]) for i in range(n_nodes) for k in range(n_nodes) if y_pred[n_nodes*i+k]!=0]
-				plotDiGraph_(n_nodes,ebunch,cmap,500,14)
-				plt.title(f)
+
+				#plot the roc curve for the instance
+				plt.subplot(4,4,len(predictions)+1)
+				plotROC(y_true,y_pred,f)
+
+				#plot the roc curve for the feedbacks only
+				plt.subplot(4,4,len(predictions)+2)
+				plotROC( getFeedbackLinks(y_true), getFeedbackLinks(y_pred), f)
+				plt.title('ROC for feedbacks only')
+
+
+				#plot the roc curve for the feedbacks only
+				plt.subplot(4,4,len(predictions)+3)
+				plotROC( getForwardLinks(y_true), getForwardLinks(y_pred), f)
+				plt.title('ROC for forward only')
+
+				#plot the predicted networks
+				plt.subplot(4,4,subplot_idx+1)
+				plotPredicted(y_pred,f,predict_n,cmap,n_nodes)
+
+			plt.subplot(4,4,len(predictions)+4)
+			instance.plotTimeSeries_(cmap)
+
 			pdf.savefig()  # saves the current figure into a pdf page
 			plt.close()
 
 
 
+def evaluateAll(d,normalize=True,predict_n=20,methods=methods):
+	predictions = {}
+	true = {}
+	for f in methods:
+		y_true,y_pred = evaluateMethod(d,methods[f],normalize=normalize)
+		predictions[f] = y_pred
+		true[f] = y_true
+
+	evaluateCombinedTotalRocCurves(predictions,true,methods)
+
+	evaluateIndividualRocCurvesAndPredictions(d,predictions,true,predict_n,methods)
+
+
+
 if __name__ == "__main__":
-	d = loadEGFR()
-	evaluateAll(d,predict_n=8)
+	d = loadOscilatory(n_instances=20)
+	d.plotAll()
+	evaluateAll(d,predict_n=20)

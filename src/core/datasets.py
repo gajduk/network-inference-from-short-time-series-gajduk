@@ -3,6 +3,7 @@ from os.path import join
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_
+from random import shuffle
 
 class Instance:
 
@@ -53,22 +54,28 @@ class Dataset:
 
     def plotAll(self):
         with PdfPages(join(PROJECT_DIR,'output','visualization_graph_and_time_series',s_timestamp()+'.pdf')) as pdf:
-            for i in range(d.n_instances):
-                instance = d.get(i)
+            for i in range(self.n_instances):
+                instance = self.get(i)
                 instance.plot()
                 pdf.savefig()  # saves the current figure into a pdf page
                 plt.close()
 
-def load(n_instances=-1):
-    X, Y = np.loadtxt(join(PROJECT_DIR,'data','out_X.csv'), delimiter=","),np.loadtxt(join(PROJECT_DIR,'data','out_Y.csv'), delimiter=",")
+def load(n_instances=-1,filename_prefix='out_'):
+    path_prefix = join(PROJECT_DIR,'data',filename_prefix)
+    X, Y = np.loadtxt(path_prefix+'X.csv', delimiter=","),np.loadtxt(path_prefix+'Y.csv', delimiter=",")
     if n_instances != -1:
-        X = X[:n_instances]
-        Y = Y[:n_instances]
+        idxs = range(len(X))
+        shuffle(idxs)
+        choice = idxs[:n_instances]
+        X = X[choice]
+        Y = Y[choice]
     return Dataset(X,Y)
 
 def loadEGFR():
-    X, Y = np.loadtxt(join(PROJECT_DIR,'data','out_egfr_X.csv'), delimiter=",").reshape((1,-1)),np.loadtxt(join(PROJECT_DIR,'data','out_egfr_Y.csv'), delimiter=",").reshape((1,-1))
-    return Dataset(X,Y)
+    return load(filename_prefix='out_egfr_')
+
+def loadOscilatory(n_instances=-1):
+    return load(n_instances=n_instances,filename_prefix='out_oscilatory_')
 
 if __name__ == "__main__":
     d = loadEGFR()
