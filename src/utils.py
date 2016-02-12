@@ -5,12 +5,14 @@ from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage
 import matplotlib.pyplot as plt
 from math import sqrt
 import numpy as np
+import warnings
 
 PROJECT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..')
 
+s_timestamp_prefix = ""
 
 def s_timestamp():
-    return datetime.datetime.now().strftime("%H_%M_%S %d_%m_%y")
+	return s_timestamp_prefix+datetime.datetime.now().strftime("%H_%M_%S %d_%m_%y")
 
 r_namespaces = {}
 
@@ -62,3 +64,16 @@ def getFeedbackLinks(M):
 def getForwardLinks(M):
     _,res = getFeedbackAndForwardLinks(M)
     return res
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emmitted
+    when the function is used."""
+    def newFunc(*args, **kwargs):
+        warnings.warn("Call to deprecated function %s." % func.__name__,
+                      category=DeprecationWarning)
+        return func(*args, **kwargs)
+    newFunc.__name__ = func.__name__
+    newFunc.__doc__ = func.__doc__
+    newFunc.__dict__.update(func.__dict__)
+    return newFunc

@@ -5,7 +5,8 @@ import numpy as np
 from scipy import stats, linalg
 import statsmodels.tsa.stattools as sts
 
-from src.utils import load_r_file
+from src.utils import load_r_file,deprecated
+import matplotlib.pyplot as plt
 
 def one_pair_at_a_time_wrapper(method):
 	def inner(i):
@@ -18,32 +19,31 @@ def one_pair_at_a_time_wrapper(method):
 		return res
 	return inner
 
-
 def time_series_columnwise_wrapper(method):
 	def inner(i):
 		data = np.zeros((i.n_time_points,i.n_nodes))
 		for idx_node in range(i.n_nodes):
 			x,_ = i.get(idx_node)
-			data[:,idx_node] = x
+			data[:,idx_node] = x.T
 		return method(data)
 	return inner
 
 @one_pair_at_a_time_wrapper
 def random_(x1,x2):
-    return random.random()
+	return random.random()
 
 @one_pair_at_a_time_wrapper
 def granger(x1,x2):
 	x1[0] += .00000000001
 	x2[0] += .00000000001
-	res = sts.grangercausalitytests(np.vstack((x1,x2)).T,2,verbose=False)[1][0]['params_ftest'][0]
+	res = sts.grangercausalitytests(np.hstack((x1,x2)),2,verbose=False)[1][0]['params_ftest'][0]
 	return res
 
 @one_pair_at_a_time_wrapper
 def cross_correlation(x1,x2):
-    mean_x1,mean_x2 = np.mean(x1),np.mean(x2)
-    std_x1,std_x2 = np.std(x1),np.std(x2)
-    return np.dot((x1-mean_x1),(x2-mean_x2))/std_x1/std_x2
+	mean_x1,mean_x2 = np.mean(x1),np.mean(x2)
+	std_x1,std_x2 = np.std(x1),np.std(x2)
+	return np.dot((x1-mean_x1).T,(x2-mean_x2))/std_x1/std_x2
 
 @one_pair_at_a_time_wrapper
 def iota(x1,x2):
@@ -63,7 +63,7 @@ def kendall(x,y):
     d = 1
     for i in range(1,len(x)):
         for j in range(i):
-            numer += np.sign(x[i] - x[j]) * np.sign(y[i] - y[j])
+            numer += np.sign(x[i] - x[j]) * np.sign(y[i] - y[j]).T
             if x[i] != x[j] and y[i] != y[j]:
                 d += 1
     return numer*1.0/d
@@ -74,7 +74,11 @@ def granger_r(x1,x2):
 	granger_a = load_r_file('gc1a.R',"granger_a")
 	return granger_a.granger(d,1)[0]
 
+@deprecated
 def granger_partial_r(i):
+	'''
+	Depracated
+	'''
 	n = i.n_nodes
 	cc = granger_r(i)
 
@@ -101,7 +105,8 @@ def granger_partial_r(i):
 	return ccc_max
 
 def holy_grail(i):
-	return i.y.reshape((i.n_nodes,i.n_nodes))
+
+	return np.absolute(np.asarray(i.y.reshape((i.n_nodes,i.n_nodes))))
 
 """
 Partial Correlation in Python (clone of Matlab's partialcorr)
@@ -159,4 +164,32 @@ def partial_corr(C):
     return P_corr
 
 
+def normalize_rowwise(x):
+	return np.absolute(x)/np.max(np.absolute(x),axis=1,keepdims=True)#/np.std(x,axis=1,keepdims=True)
+
+def mutliple_time_series_combiner(method,i):
+	cc = np.zeros((i.n_nodes,i.n_nodes))
+	'''
+	plt.subplot(3,5,1)
+	plt.imshow(np.absolute(np.reshape(i.y,(14,14))))
+	plt.subplot(3,5,6)
+	plt.imshow(np.absolute(np.reshape(i.y,(14,14))))
+	'''
+	for idx_time_series in range(i.n_time_series):
+		i.setx(idx_time_series)
+		res_method = np.absolute(method(i))
+		cc += normalize_rowwise(res_method)
+		'''
+		plt.subplot(3,5,idx_time_series+2)
+		plt.imshow(res_method)
+		plt.subplot(3,5,5+idx_time_series+2)
+		plt.imshow(normalize_rowwise(res_method))
+		plt.subplot(3,5,10+idx_time_series+2)
+		plt.imshow(cc)
+		'''
+	cc = normalize_rowwise(cc)
+	return cc
+
+
 methods = {"holy_grail":holy_grail,"granger_partial_r":granger_partial_r,"random":random_,"cross_correlation":cross_correlation,"iota":iota,"kendall":kendall,"granger":granger,"partial_corr":partial_corr,"granger_r":granger_r}
+good_methods = {f:methods[f] for f in ["cross_correlation"]}#,"holy_grail"]} #,"granger","kendall","partial_corr","random"]}

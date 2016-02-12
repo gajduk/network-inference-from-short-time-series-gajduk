@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pylab as plt
-from methods import methods
-from datasets import load,loadEGFR,loadOscilatory
+from methods import good_methods as methods
+from methods import mutliple_time_series_combiner
 from sklearn.metrics import roc_curve,auc
 from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_,getFeedbackLinks,getForwardLinks
+import src.utils
 from os.path import join
 from matplotlib.backends.backend_pdf import PdfPages
+from json_dataset_reader import JsonDatasetReader
 
 debug = False
 
@@ -13,7 +15,8 @@ def normalize_rowwise(x):
 	return np.absolute(x)/np.max(np.absolute(x),axis=1,keepdims=True)#/np.std(x,axis=1,keepdims=True)
 
 def evaluateMethodOnInstance(i,method,normalize=False):
-	cc = method(i)
+	cc = mutliple_time_series_combiner(method,i)
+
 	for idx_node in range(i.n_nodes):
 		if normalize:
 			if cc[idx_node][idx_node] != 0:
@@ -24,6 +27,14 @@ def evaluateMethodOnInstance(i,method,normalize=False):
 	y_true = np.reshape(1.0*(np.absolute(i.y)>0.01),(i.n_nodes*i.n_nodes,1))
 	cc = np.absolute(cc)
 	cc_flat = cc.flatten()
+	if debug:
+		plt.figure()
+		plt.subplot(1,2,1)
+		plt.imshow(np.reshape(y_true,(i.n_nodes,i.n_nodes)))
+		plt.subplot(1,2,2)
+		plt.imshow(np.reshape(cc_flat,(i.n_nodes,i.n_nodes)))
+		plt.title(method.__name__)
+		plt.show()
 	return np.reshape(y_true,(i.n_nodes*i.n_nodes,)),np.reshape(cc_flat,(i.n_nodes*i.n_nodes,))
 
 def evaluateMethod(dataset,method,normalize=False):
@@ -42,6 +53,7 @@ def evaluateMethod(dataset,method,normalize=False):
 def evaluateCombinedTotalRocCurves(predictions,true,methods):
 	res = "{0: <20}          {1: <19} {2: <19} {3: <19}\n".format(" ","auc","auc forward","auc feedbacks")
 	plt.figure(figsize=(35,12))
+	best_auc = 0;
 	for f in methods:
 		y_true,y_pred = true[f],predictions[f]
 		feedbacks_y_true = np.reshape([getFeedbackLinks(temp) for temp in y_true], (-1, 1))
@@ -52,16 +64,19 @@ def evaluateCombinedTotalRocCurves(predictions,true,methods):
 		combined_y_true = np.reshape(y_true,(-1,1))
 		plt.subplot(1,3,1)
 		roc_auc = plotROC(combined_y_true,combined_y_pred,f)
-		plt.title('ROC for feedbacks only')
+		if roc_auc > best_auc and roc_auc < 0.99:
+			best_auc = roc_auc
 		plt.subplot(1,3,2)
 		roc_auc_forward = plotROC(forward_y_true,forward_y_pred,f)
 		plt.title('ROC for forward only')
 		plt.subplot(1,3,3)
 		roc_auc_feedbacks = plotROC(feedbacks_y_true,feedbacks_y_pred,f)
-		res += "{0: <20} {1:16.3f} {2:16.3f}  {3: <19}\n".format(f,roc_auc,roc_auc_forward,roc_auc_feedbacks)
+		plt.title('ROC for feedbacks only')
+		res += "{0: <20} {1:16.3f} {2:16.3f}  {3:16.3f}\n".format(f,roc_auc,roc_auc_forward,roc_auc_feedbacks)
 	plt.savefig(join(PROJECT_DIR,'output','evaluation',s_timestamp()+'.pdf'))
 	with open(join(PROJECT_DIR,'output','evaluation',s_timestamp()+'.txt'),'w') as pout:
 		pout.write(res)
+	return best_auc
 
 def plotROC(y_true,y_pred,label):
 	fpr,tpr,_ = roc_curve(y_true,y_pred)
@@ -118,7 +133,7 @@ def evaluateIndividualRocCurvesAndPredictions(d,predictions,true,predict_n,metho
 
 
 
-def evaluateAll(d,normalize=True,predict_n=20,methods=methods):
+def evaluateAll(d,normalize=False,predict_n=20,methods=methods):
 	predictions = {}
 	true = {}
 	for f in methods:
@@ -126,13 +141,30 @@ def evaluateAll(d,normalize=True,predict_n=20,methods=methods):
 		predictions[f] = y_pred
 		true[f] = y_true
 
-	evaluateCombinedTotalRocCurves(predictions,true,methods)
+	res = evaluateCombinedTotalRocCurves(predictions,true,methods)
 
 	evaluateIndividualRocCurvesAndPredictions(d,predictions,true,predict_n,methods)
+	return res
+
 
 
 
 if __name__ == "__main__":
-	d = loadOscilatory(n_instances=20)
-	d.plotAll()
-	evaluateAll(d,predict_n=20)
+	reader = JsonDatasetReader('initial_12_02_16.json.zip')
+	best_aucs = []
+	ns_inhibitions = range(1,10)
+	for n_inhibitions in ns_inhibitions:
+		print n_inhibitions
+		src.utils.s_timestamp_prefix = str(n_inhibitions)+"___"
+		d = reader.getDataset(n_time_series=n_inhibitions)
+		d.plotAll()
+		best_aucs.append(evaluateAll(d,predict_n=20))
+		print best_aucs
+	'''
+	plt.close()
+	plt.figure()
+	plt.plot(ns_inhibitions,best_aucs)
+	plt.xlabel('Number of inhibitions')
+	plt.ylabel('auc')
+	plt.show()
+	'''
