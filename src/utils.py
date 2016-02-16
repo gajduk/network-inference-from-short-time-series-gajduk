@@ -29,15 +29,17 @@ def load_r_file(filename,namespace):
     return r_namespaces[namespace]
 
 
-def plotDiGraph_(n_nodes,ebunch,cmap,node_size=400,font_size=12):
+def plotDiGraph_(n_nodes,ebunch,cmap,node_size=400,font_size=12,node_labels=None):
     G = nx.DiGraph()
     G.add_nodes_from(range(n_nodes))
     G.add_weighted_edges_from(ebunch)
+    if node_labels is None:
+        node_labels = [str(i+1) for i in range(G.number_of_nodes())]
     pos=nx.shell_layout(G)
     nx.draw_networkx_nodes(G,pos,node_color=range(G.number_of_nodes()),cmap=cmap,node_size=node_size)
     nx.draw_networkx_edges(G,pos,edgelist=[(i,k) for i,k,w in ebunch if w > 0],edge_color='g',width=1)
     nx.draw_networkx_edges(G,pos,edgelist=[(i,k) for i,k,w in ebunch if w < 0],edge_color='r',width=1)
-    nx.draw_networkx_labels(G,pos,{i:str(i+1) for i in range(G.number_of_nodes())},font_size=font_size)
+    nx.draw_networkx_labels(G,pos,{i:node_labels[i] for i in range(G.number_of_nodes())},font_size=font_size)
     plt.axis('off')
 
 def getFeedbackAndForwardLinks(M):
@@ -77,3 +79,13 @@ def deprecated(func):
     newFunc.__doc__ = func.__doc__
     newFunc.__dict__.update(func.__dict__)
     return newFunc
+
+def getSubplots(n):
+    temp = {1:(1,1),2:(1,2),3:(1,3),4:(2,2),5:(2,3),6:(2,3),7:(3,3),8:(3,3),9:(3,3),10:(3,4),11:(3,4),12:(4,4),13:(4,4),14:(4,4),15:(4,4),16:(4,4)}
+    if n not in temp:
+        smaller = int(sqrt(n))
+        if smaller*smaller == n:
+            return smaller,smaller
+        else:
+            return smaller,smaller+1
+    return temp[n]

@@ -192,4 +192,4 @@ def mutliple_time_series_combiner(method,i):
 
 
 methods = {"holy_grail":holy_grail,"granger_partial_r":granger_partial_r,"random":random_,"cross_correlation":cross_correlation,"iota":iota,"kendall":kendall,"granger":granger,"partial_corr":partial_corr,"granger_r":granger_r}
-good_methods = {f:methods[f] for f in ["cross_correlation"]}#,"holy_grail"]} #,"granger","kendall","partial_corr","random"]}
+good_methods = {f:methods[f] for f in ["cross_correlation","holy_grail","granger","kendall","partial_corr","random"]}

@@ -6,6 +6,7 @@ from bisect import bisect_right as binary_search
 from datasets import Instance,Dataset
 import numpy as np
 import matplotlib.pylab as plt
+from random import shuffle
 
 class TimeSeries:
 
@@ -37,7 +38,7 @@ class JsonDatasetReader:
 				data = pin.read()
 		return json.loads(data)
 
-	def getDataset(self,n_time_points=12,n_time_series=3,n_nodes=14):
+	def getDataset(self,n_time_points=20,n_time_series=3,n_nodes=6):
 		root = self._json['root']
 		instances = []
 		count = 1
@@ -46,7 +47,10 @@ class JsonDatasetReader:
 			y = np.reshape(np.matrix(instance['pin']['f']).T,(n_nodes*n_nodes,1))
 			xs = []
 			pin_simulation_results = instance['pin_simulation_results']
-			for pin_simulation_result in pin_simulation_results:
+			from copy import deepcopy
+			temp = deepcopy(pin_simulation_results)
+			shuffle(temp)
+			for pin_simulation_result in temp:
 				t = np.array(pin_simulation_result['t'])
 				x = np.matrix(pin_simulation_result['y'])
 				ts = TimeSeries(t,x)

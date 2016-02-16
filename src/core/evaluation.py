@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 from methods import good_methods as methods
 from methods import mutliple_time_series_combiner
 from sklearn.metrics import roc_curve,auc
-from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_,getFeedbackLinks,getForwardLinks
+from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_,getFeedbackLinks,getForwardLinks,getSubplots
 import src.utils
 from os.path import join
 from matplotlib.backends.backend_pdf import PdfPages
@@ -54,6 +54,7 @@ def evaluateCombinedTotalRocCurves(predictions,true,methods):
 	res = "{0: <20}          {1: <19} {2: <19} {3: <19}\n".format(" ","auc","auc forward","auc feedbacks")
 	plt.figure(figsize=(35,12))
 	best_auc = 0;
+	subplot_i,subplot_k = getSubplots(3)
 	for f in methods:
 		y_true,y_pred = true[f],predictions[f]
 		feedbacks_y_true = np.reshape([getFeedbackLinks(temp) for temp in y_true], (-1, 1))
@@ -62,14 +63,14 @@ def evaluateCombinedTotalRocCurves(predictions,true,methods):
 		forward_y_pred = np.reshape([getForwardLinks(temp) for temp in y_pred], (-1, 1))
 		combined_y_pred = np.reshape(y_pred,(-1,1))
 		combined_y_true = np.reshape(y_true,(-1,1))
-		plt.subplot(1,3,1)
+		plt.subplot(subplot_i,subplot_k,1)
 		roc_auc = plotROC(combined_y_true,combined_y_pred,f)
 		if roc_auc > best_auc and roc_auc < 0.99:
 			best_auc = roc_auc
-		plt.subplot(1,3,2)
+		plt.subplot(subplot_i,subplot_k,2)
 		roc_auc_forward = plotROC(forward_y_true,forward_y_pred,f)
 		plt.title('ROC for forward only')
-		plt.subplot(1,3,3)
+		plt.subplot(subplot_i,subplot_k,3)
 		roc_auc_feedbacks = plotROC(feedbacks_y_true,feedbacks_y_pred,f)
 		plt.title('ROC for feedbacks only')
 		res += "{0: <20} {1:16.3f} {2:16.3f}  {3:16.3f}\n".format(f,roc_auc,roc_auc_forward,roc_auc_feedbacks)
@@ -89,10 +90,10 @@ def plotROC(y_true,y_pred,label):
 	plt.ylabel('True Positive Rate')
 	return roc_auc
 
-def plotPredicted(y_pred,label,predict_n,cmap,n_nodes):
+def plotPredicted(y_pred,label,predict_n,cmap,n_nodes,node_labels):
 	y_pred[np.argsort(y_pred)[:-predict_n]] = 0
 	ebunch = [(k,i,y_pred[n_nodes*i+k]) for i in range(n_nodes) for k in range(n_nodes) if y_pred[n_nodes*i+k]!=0]
-	plotDiGraph_(n_nodes,ebunch,cmap,500,14)
+	plotDiGraph_(n_nodes,ebunch,cmap,500,14,node_labels=node_labels)
 	plt.title(label)
 
 def evaluateIndividualRocCurvesAndPredictions(d,predictions,true,predict_n,methods):
@@ -101,31 +102,33 @@ def evaluateIndividualRocCurvesAndPredictions(d,predictions,true,predict_n,metho
 		for idx_instance in range(d.n_instances):
 			instance = d.get(idx_instance)
 			n_nodes = instance.n_nodes
+			node_labels = instance.labels
 			plt.figure(figsize=(40,20))
+			subplot_i,subplot_k = getSubplots(len(predictions)+4)
 			for subplot_idx,f in enumerate(methods):
 				y_true = true[f][idx_instance][:]
 				y_pred = predictions[f][idx_instance][:]
 
 				#plot the roc curve for the instance
-				plt.subplot(4,4,len(predictions)+1)
+				plt.subplot(subplot_i,subplot_k,len(predictions)+1)
 				plotROC(y_true,y_pred,f)
 
 				#plot the roc curve for the feedbacks only
-				plt.subplot(4,4,len(predictions)+2)
+				plt.subplot(subplot_i,subplot_k,len(predictions)+2)
 				plotROC( getFeedbackLinks(y_true), getFeedbackLinks(y_pred), f)
 				plt.title('ROC for feedbacks only')
 
 
 				#plot the roc curve for the feedbacks only
-				plt.subplot(4,4,len(predictions)+3)
+				plt.subplot(subplot_i,subplot_k,len(predictions)+3)
 				plotROC( getForwardLinks(y_true), getForwardLinks(y_pred), f)
 				plt.title('ROC for forward only')
 
 				#plot the predicted networks
-				plt.subplot(4,4,subplot_idx+1)
-				plotPredicted(y_pred,f,predict_n,cmap,n_nodes)
+				plt.subplot(subplot_i,subplot_k,subplot_idx+1)
+				plotPredicted(y_pred,f,predict_n,cmap,n_nodes,node_labels)
 
-			plt.subplot(4,4,len(predictions)+4)
+			plt.subplot(subplot_i,subplot_k,len(predictions)+4)
 			instance.plotTimeSeries_(cmap)
 
 			pdf.savefig()  # saves the current figure into a pdf page
@@ -150,15 +153,14 @@ def evaluateAll(d,normalize=False,predict_n=20,methods=methods):
 
 
 if __name__ == "__main__":
-	reader = JsonDatasetReader('initial_12_02_16.json.zip')
+	reader = JsonDatasetReader('egfr_model.json.zip')
 	best_aucs = []
-	ns_inhibitions = range(1,10)
+	ns_inhibitions = range(1,2)
 	for n_inhibitions in ns_inhibitions:
-		print n_inhibitions
-		src.utils.s_timestamp_prefix = str(n_inhibitions)+"___"
-		d = reader.getDataset(n_time_series=n_inhibitions)
+		src.utils.s_timestamp_prefix = str(1)+"___"
+		d = reader.getDataset(n_time_series=1)
 		d.plotAll()
-		best_aucs.append(evaluateAll(d,predict_n=20))
+		best_aucs.append(evaluateAll(d,predict_n=8))
 		print best_aucs
 	'''
 	plt.close()

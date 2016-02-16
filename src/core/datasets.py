@@ -18,6 +18,10 @@ class Instance:
 			self.n_time_series = n_time_series
 		else:
 			self.n_time_series = len(xs)
+		if n_nodes == 6:
+			self.labels = ['EGFR','Raf','MEK','ERK','Akt','Src']
+		else:
+			self.labels = [str(i+1) for i in range(n_nodes)]
 
 	def get(self,idx_node):
 		return self.x[self.n_time_points*idx_node:self.n_time_points*(idx_node+1)],self.y[self.n_nodes*idx_node:self.n_nodes*(idx_node+1)]
@@ -26,7 +30,7 @@ class Instance:
 		return [(k,i,self.y[self.n_nodes*i+k]) for i in range(self.n_nodes) for k in range(self.n_nodes) if self.y[self.n_nodes*i+k]!=0]
 
 	def plotGraph_(self,cmap=plt.cm.Accent):
-		plotDiGraph_(self.n_nodes,self.getebunch(),cmap)
+		plotDiGraph_(self.n_nodes,self.getebunch(),cmap,node_labels=self.labels)
 
 	def plotTimeSeries_(self,cmap=plt.cm.Accent):
 		plt.xlabel('Time [min]')
@@ -35,6 +39,7 @@ class Instance:
 		for i, color in enumerate(colors):
 			x,y = self.get(i)
 			plt.plot(self.t,x, color=color)
+		plt.legend(self.labels,bbox_to_anchor=(1.3, .8))
 
 	def setx(self,s_idx):
 		self.t,self.x = self.xs[s_idx].getx(self.n_time_points)
