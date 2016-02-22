@@ -39,19 +39,24 @@ class Instance:
 		for i, color in enumerate(colors):
 			x,y = self.get(i)
 			plt.plot(self.t,x, color=color)
-		plt.legend(self.labels,bbox_to_anchor=(1.3, .8))
+		plt.legend(self.labels,bbox_to_anchor=(-0.2, 1.1))
 
 	def setx(self,s_idx):
 		self.t,self.x = self.xs[s_idx].getx(self.n_time_points)
 
 	def plot(self):
-		plt.figure(figsize=(9,4))
+		plt.figure(figsize=(9.5,4.5))
 		cmap = plt.cm.Accent
 		plt.subplot(1,2,1)
-		self.plotGraph_(cmap)
+		plt.axis('off')
+		#self.plotGraph_(cmap)
 		plt.subplot(1,2,2)
 		self.setx(self.n_time_series-1)
 		self.plotTimeSeries_(cmap)
+
+	def exportAsCsv(self,filename):
+		np.savetxt(filename+"_time_series.csv", np.reshape(self.x,(self.n_nodes,self.n_time_points)), delimiter=",")
+		np.savetxt(filename+"_links.csv", np.reshape(self.y,(self.n_nodes,self.n_nodes)), delimiter=",")
 
 class Dataset:
 
@@ -72,6 +77,8 @@ class Dataset:
 				instance.plot()
 				pdf.savefig()  # saves the current figure into a pdf page
 				plt.close()
+
+
 
 if __name__ == "__main__":
 	pass

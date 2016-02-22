@@ -3,13 +3,12 @@ import matplotlib.pylab as plt
 from methods import good_methods as methods
 from methods import mutliple_time_series_combiner
 from sklearn.metrics import roc_curve,auc
-from src.utils import PROJECT_DIR,s_timestamp,plotDiGraph_,getFeedbackLinks,getForwardLinks,getSubplots
+from src.utils import debug,PROJECT_DIR,s_timestamp,plotDiGraph_,getFeedbackLinks,getForwardLinks,getSubplots
 import src.utils
 from os.path import join
 from matplotlib.backends.backend_pdf import PdfPages
-from json_dataset_reader import JsonDatasetReader
+from json_dataset_reader import JsonDatasetReader,CsvDatasetReader
 
-debug = False
 
 def normalize_rowwise(x):
 	return np.absolute(x)/np.max(np.absolute(x),axis=1,keepdims=True)#/np.std(x,axis=1,keepdims=True)
@@ -53,7 +52,7 @@ def evaluateMethod(dataset,method,normalize=False):
 def evaluateCombinedTotalRocCurves(predictions,true,methods):
 	res = "{0: <20}          {1: <19} {2: <19} {3: <19}\n".format(" ","auc","auc forward","auc feedbacks")
 	plt.figure(figsize=(35,12))
-	best_auc = 0;
+	best_auc = 0
 	subplot_i,subplot_k = getSubplots(3)
 	for f in methods:
 		y_true,y_pred = true[f],predictions[f]
@@ -150,23 +149,12 @@ def evaluateAll(d,normalize=False,predict_n=20,methods=methods):
 	return res
 
 
-
+def main():
+	src.utils.s_timestamp_prefix = "oscilatory_and_inhibition_top__"
+	reader = JsonDatasetReader('oscilatory_and_inhibition.json.zip')
+	d = reader.getDataset(n_time_points=12,n_time_series=1,n_nodes=14)
+	d.plotAll()
+	evaluateAll(d,predict_n=20)
 
 if __name__ == "__main__":
-	reader = JsonDatasetReader('egfr_model.json.zip')
-	best_aucs = []
-	ns_inhibitions = range(1,2)
-	for n_inhibitions in ns_inhibitions:
-		src.utils.s_timestamp_prefix = str(1)+"___"
-		d = reader.getDataset(n_time_series=1)
-		d.plotAll()
-		best_aucs.append(evaluateAll(d,predict_n=8))
-		print best_aucs
-	'''
-	plt.close()
-	plt.figure()
-	plt.plot(ns_inhibitions,best_aucs)
-	plt.xlabel('Number of inhibitions')
-	plt.ylabel('auc')
-	plt.show()
-	'''
+	main()

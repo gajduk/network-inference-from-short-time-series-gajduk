@@ -47,3 +47,5 @@ fabric.properties
 *.pdf
 .idea/codeStyleSettings.xml
 *.xml
+*.json
+*.zip

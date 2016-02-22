@@ -5,8 +5,9 @@ import numpy as np
 from scipy import stats, linalg
 import statsmodels.tsa.stattools as sts
 
-from src.utils import load_r_file,deprecated
+from src.utils import load_r_file,deprecated,debug
 import matplotlib.pyplot as plt
+
 
 def one_pair_at_a_time_wrapper(method):
 	def inner(i):
@@ -105,7 +106,6 @@ def granger_partial_r(i):
 	return ccc_max
 
 def holy_grail(i):
-
 	return np.absolute(np.asarray(i.y.reshape((i.n_nodes,i.n_nodes))))
 
 """
@@ -169,27 +169,27 @@ def normalize_rowwise(x):
 
 def mutliple_time_series_combiner(method,i):
 	cc = np.zeros((i.n_nodes,i.n_nodes))
-	'''
-	plt.subplot(3,5,1)
-	plt.imshow(np.absolute(np.reshape(i.y,(14,14))))
-	plt.subplot(3,5,6)
-	plt.imshow(np.absolute(np.reshape(i.y,(14,14))))
-	'''
+	if debug:
+		plt.subplot(3,5,1)
+		plt.imshow(np.absolute(np.reshape(i.y,(14,14))))
+		plt.subplot(3,5,6)
+		plt.imshow(np.absolute(np.reshape(i.y,(14,14))))
+
 	for idx_time_series in range(i.n_time_series):
 		i.setx(idx_time_series)
 		res_method = np.absolute(method(i))
 		cc += normalize_rowwise(res_method)
-		'''
-		plt.subplot(3,5,idx_time_series+2)
-		plt.imshow(res_method)
-		plt.subplot(3,5,5+idx_time_series+2)
-		plt.imshow(normalize_rowwise(res_method))
-		plt.subplot(3,5,10+idx_time_series+2)
-		plt.imshow(cc)
-		'''
+		if debug:
+			plt.subplot(3,5,idx_time_series+2)
+			plt.imshow(res_method)
+			plt.subplot(3,5,5+idx_time_series+2)
+			plt.imshow(normalize_rowwise(res_method))
+			plt.subplot(3,5,10+idx_time_series+2)
+			plt.imshow(cc)
 	cc = normalize_rowwise(cc)
 	return cc
 
 
-methods = {"holy_grail":holy_grail,"granger_partial_r":granger_partial_r,"random":random_,"cross_correlation":cross_correlation,"iota":iota,"kendall":kendall,"granger":granger,"partial_corr":partial_corr,"granger_r":granger_r}
-good_methods = {f:methods[f] for f in ["cross_correlation","holy_grail","granger","kendall","partial_corr","random"]}
+methods = {"holy_grail":holy_grail,"random":random_,"cross_correlation":cross_correlation,"iota":iota,"kendall":kendall,"granger":granger,"partial_corr":partial_corr,"granger_partial_r":granger_partial_r,"granger_r":granger_r}
+
+good_methods = {f:methods[f] for f in ["cross_correlation","holy_grail","granger",]}#"kendall","partial_corr","random"]}
