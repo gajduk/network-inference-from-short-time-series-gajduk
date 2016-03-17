@@ -1,4 +1,5 @@
 from os.path import join
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -13,7 +14,7 @@ class Dataset:
 	def get(self, idx_instance):
 		return self.instances[idx_instance]
 
-	def plotAll(self):
+	def plotAll(self, sampler):
 		font = {'size': 38}
 		plt.rc('font', **font)
 		plt.rcParams['lines.linewidth'] = 3
@@ -24,9 +25,9 @@ class Dataset:
 			for i in range(self.n_instances):
 				instance = self.get(i)
 				for n_time_idx in range(instance.n_time_series):
-					instance.setx(n_time_idx)
-					instance.plot()
-					pdf.savefig(dpi=100)  # saves the current figure into a pdf page
+					istsv = instance.getViewForTimeSeries(n_time_idx, sampler)
+					istsv.plot()
+					pdf.savefig(dpi=100)
 					plt.close()
 
 		font = {'size': 12}
@@ -35,4 +36,4 @@ class Dataset:
 
 if __name__ == "__main__":
 	pass
-	# d.plotAll()
+# d.plotAll()

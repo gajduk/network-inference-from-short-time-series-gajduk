@@ -7,8 +7,8 @@ import numpy as np
 
 from src.model.datasets import Dataset
 from src.model.instance import Instance
-from src.model.time_serie import TimeSerie
-from src.utils import PROJECT_DIR, deprecated
+from src.model.time_serie import TimeSerie, TimeSerieSampler
+from src.utils import PROJECT_DIR
 
 DEFAULT_DIR = join(PROJECT_DIR, 'data')
 
@@ -35,7 +35,7 @@ class JsonDatasetReader:
 			instance = instance_i[0]
 			n_nodes = instance['pin']['n']
 			y = np.reshape(np.matrix(instance['pin']['f']).T, (n_nodes * n_nodes, 1))
-			xs = []
+			time_series = []
 			pin_simulation_results = instance['pin_simulation_results']
 			from copy import deepcopy
 			temp = deepcopy(pin_simulation_results)
@@ -44,8 +44,8 @@ class JsonDatasetReader:
 				t = np.array(pin_simulation_result['t'])
 				x = np.matrix(pin_simulation_result['y'])
 				ts = TimeSerie(t, x)
-				xs.append(ts)
-			instances.append(Instance(xs, y, n_nodes))
+				time_series.append(ts)
+			instances.append(Instance(time_series, y, n_nodes))
 			count += 1
 			if count > n_instances:
 				break
@@ -53,9 +53,9 @@ class JsonDatasetReader:
 
 
 def main():
-	reader = JsonDatasetReader('for_presentation.zip')
-	d = reader.getDataset(n_instances=1)
-	d.plotAll()
+	reader = JsonDatasetReader('example1.json.zip')
+	d = reader.getDataset(n_instances=100)
+	d.plotAll(TimeSerieSampler())
 
 
 if __name__ == "__main__":

@@ -6,8 +6,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from sklearn.metrics import roc_curve, auc
 
 import src.utils
-from methods import good_methods as methods
-from methods import mutliple_time_series_combiner
+from src.methods.methods import good_methods as methods
+from src.methods.methods import mutliple_time_series_combiner
 from src.readers.json_dataset_reader import JsonDatasetReader
 from src.utils import debug, PROJECT_DIR, s_timestamp, getFeedbackLinks, getForwardLinks, getSubplots, \
 	plotDiGraphViaGraphViz

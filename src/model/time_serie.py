@@ -38,9 +38,9 @@ class TimeSerieSampler:
 				x1 = time_serie.x[time_idx - 1, :]
 				k = np.max((t - t1) * (t2 - t1))
 				temp = x1 + (x2 - x1) * k
-				temp[temp < 0] = 0
+				#temp[temp < 0] = 0
 				new_x[i, :] = temp
-		return times, np.reshape(new_x.T, (-1, 1))
+		return times, new_x.T
 
 	def get_n_time_points(self):
 		if not self.times is None:

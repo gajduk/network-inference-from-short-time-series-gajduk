@@ -9,6 +9,7 @@ import numpy as np
 from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage
 
 PROJECT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+OUTPUT_DIR = os.path.join(PROJECT_DIR,"output")
 
 s_timestamp_prefix = ""
 
@@ -19,6 +20,8 @@ def s_timestamp():
 	                                    range(6)) + '_' + datetime.datetime.now().strftime("%H_%M_%S %d_%m_%y")
 
 r_namespaces = {}
+
+five_pin_setups = ["PulseInput","PulseInput+OneInhibition","PulseInput+TwoInhibition","OscilationInput","OcilationInput+OneInhibition"]
 
 def load_r_file(filename, namespace):
 	if namespace not in r_namespaces:

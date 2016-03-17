@@ -1,12 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.utils import plotDiGraph_, plotDiGraphViaGraphViz, deprecated
+from src.utils import deprecated
+from src.graph_plotting import plotDiGraph_, plotDiGraphViaGraphViz
 
 
 class InstanceSingleTimeSeriesView:
 	'''
 	Defines a view of a PIN with a just a single time series
+	t an array of len n_time_points
+	x a matrix with shape n_nodes, n_time_points
+	y a matrix with shape n_nodes, n_nodes
 	'''
 
 	def __init__(self, t, x, graph_adjacency_matrix, n_nodes):
@@ -22,9 +26,7 @@ class InstanceSingleTimeSeriesView:
 		self.pos = None
 
 	def get(self, idx_node):
-		return self.x[self.n_time_points * idx_node:self.n_time_points * (idx_node + 1)], self.y[
-		                                                                                  self.n_nodes * idx_node:self.n_nodes * (
-		                                                                                  idx_node + 1)]
+		return self.x[idx_node,:][:].tolist(),self.y[idx_node*self.n_time_points:(idx_node+1)*self.n_time_points]
 
 	def getebunch(self):
 		return [(k, i, self.y[self.n_nodes * i + k]) for i in range(self.n_nodes) for k in range(self.n_nodes) if
@@ -83,7 +85,7 @@ class Instance:
 		'''
 		if time_series_idx < 0 or time_series_idx >= len(self.time_series):
 			raise ValueError(
-				"time_series_idx({0}) is out of range [0,{1}]".format(time_series_idx, len(self.time_series)))
+				"time_series_idx ({0}) is out of range [0,{1}]".format(time_series_idx, len(self.time_series)))
 		t, x = sampler.sample(self.time_series[time_series_idx])
 		sampler.get_n_time_points()
 		return InstanceSingleTimeSeriesView(t, x, self.graph_adjecency_matrix, self.n_nodes)

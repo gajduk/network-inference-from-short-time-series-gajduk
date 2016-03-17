@@ -1,5 +1,5 @@
 
-# load subroutines 
+# load subroutines R
 source('IOTA.R')
 
 # load or simulate time series as an array of size m*n, with m number of variables and n number of time points

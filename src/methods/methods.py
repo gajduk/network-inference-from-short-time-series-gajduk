@@ -1,36 +1,12 @@
-import random
 import math
+import random
 
 import numpy as np
-from scipy import stats, linalg
 import statsmodels.tsa.stattools as sts
+from scipy import stats, linalg
 
-from src.utils import load_r_file, deprecated, debug
-import matplotlib.pyplot as plt
-
-
-def one_pair_at_a_time_wrapper(method):
-	def inner(i):
-		res = np.zeros((i.n_nodes, i.n_nodes))
-		for idx_node1 in range(i.n_nodes):
-			x1, _ = i.get(idx_node1)
-			for idx_node2 in range(i.n_nodes):
-				x2, _ = i.get(idx_node2)
-				res[idx_node1][idx_node2] = method(x1, x2)
-		return res
-
-	return inner
-
-
-def time_series_columnwise_wrapper(method):
-	def inner(i):
-		data = np.zeros((i.n_time_points, i.n_nodes))
-		for idx_node in range(i.n_nodes):
-			x, _ = i.get(idx_node)
-			data[:, idx_node] = x.T
-		return method(data)
-
-	return inner
+from src.utils import load_r_file, deprecated
+from utils import one_pair_at_a_time_wrapper, time_series_columnwise_wrapper
 
 
 @one_pair_at_a_time_wrapper
@@ -42,7 +18,7 @@ def random_(x1, x2):
 def granger(x1, x2):
 	x1[0] += .00000000001
 	x2[0] += .00000000001
-	res = sts.grangercausalitytests(np.hstack((x1, x2)), 2, verbose=False)[1][0]['params_ftest'][0]
+	res = sts.grangercausalitytests(np.vstack((x1, x2)).T, 2, verbose=False)[1][0]['params_ftest'][0]
 	return res
 
 
@@ -178,37 +154,77 @@ def partial_corr(C):
 	return P_corr
 
 
-def normalize_rowwise(x):
-	return np.absolute(x) / np.max(np.absolute(x), axis=1, keepdims=True)  # /np.std(x,axis=1,keepdims=True)
+from symbolic import symbolSequenceSimilarity, mutualInformationOfSymbols
 
 
-def mutliple_time_series_combiner(method, i):
-	cc = np.zeros((i.n_nodes, i.n_nodes))
-	if debug:
-		plt.subplot(3, 5, 1)
-		plt.imshow(np.absolute(np.reshape(i.y, (14, 14))))
-		plt.subplot(3, 5, 6)
-		plt.imshow(np.absolute(np.reshape(i.y, (14, 14))))
+def g_generator(n_harmonics=10):
+	def coef_generator():
+		r = random.random()
+		return math.pow(10, r * 2.00432137) - 1.0
 
-	for idx_time_series in range(i.n_time_series):
-		i.setx(idx_time_series)
-		res_method = np.absolute(method(i))
-		cc += normalize_rowwise(res_method)
-		if debug:
-			plt.subplot(3, 5, idx_time_series + 2)
-			plt.imshow(res_method)
-			plt.subplot(3, 5, 5 + idx_time_series + 2)
-			plt.imshow(normalize_rowwise(res_method))
-			plt.subplot(3, 5, 10 + idx_time_series + 2)
-			plt.imshow(cc)
-	cc = normalize_rowwise(cc)
-	return cc
+	a = np.matrix([coef_generator() for i in range(n_harmonics)])
+	b = np.matrix([coef_generator() for i in range(n_harmonics)])
+	k = np.matrix([i + 1 for i in range(n_harmonics)])
 
+	def g(x):
+		return np.sum(np.multiply(a,np.sin(k * x)) + np.multiply(b,np.cos(k * x)))/(np.sum(a)+np.sum(b))
+
+	return g
+
+
+def example1(instance):
+	x = instance.x
+	n = instance.n_nodes
+	L = instance.n_time_points
+
+	def f(x):
+		return - x
+
+	def h(x):
+		return math.tanh(x)
+	min_delta = 100000
+	reconstructed_R = -1
+	A = np.array(instance.y.reshape((n,n)))
+	for asd in range(10000):
+		g = g_generator()
+		B, C, E = np.zeros((n,n)),np.zeros((n,n)),np.zeros((n,n))
+
+		for i in range(n):
+			for j in range(n):
+				B[i][j] = np.sum([g(x[i][k])*x[j][k] for k in range(L)])
+				C[i][j] = np.sum([g(x[i][k])*f(x[j][k]) for k in range(L)])
+				E[i][j] = np.sum([g(x[i][k])*h(x[j][k]) for k in range(L)])
+		R = np.linalg.inv(E)*(B - C)
+		R = ((R-np.min(R[:]))/(np.max(R[:])-np.min(R[:]))-0.5)*20
+
+		delta_A = 0
+		normalization = 0
+		for i in range(n):
+			for j in range(n):
+				delta_A += (R[i][j]-A[i][j])*(R[i][j]-A[i][j])
+				normalization += A[i][j]*A[i][j]
+		delta_A = math.sqrt(delta_A)/36
+		if delta_A < min_delta:
+			min_delta = delta_A
+			reconstructed_R = R
+	print min_delta
+	import matplotlib.pylab as plt
+	plt.subplot(1,3,1)
+	plt.set_cmap('bwr')
+	plt.imshow(A,interpolation='none')
+	plt.subplot(1,3,2)
+	plt.set_cmap('bwr')
+	plt.imshow(reconstructed_R,interpolation='none')
+	plt.subplot(1,3,3)
+	plt.set_cmap('bwr')
+	plt.imshow(reconstructed_R-A,interpolation='none')
+	plt.show()
 
 methods = {"holy_grail": holy_grail, "random": random_, "cross_correlation": cross_correlation, "iota": iota,
            "kendall": kendall, "granger": granger, "partial_corr": partial_corr, "granger_partial_r": granger_partial_r,
-           "granger_r": granger_r}
+           "granger_r": granger_r, "symbol_similarity": symbolSequenceSimilarity,
+           "symbol_mutual": mutualInformationOfSymbols, "example1": example1}
 
 good_methods = {f: methods[f] for f in
-                ["cross_correlation", "holy_grail", "granger", "kendall", "random", "partial_corr",
-                 "granger_partial_r"]}
+                ["example1", "cross_correlation", "holy_grail", "kendall", "random", "partial_corr",
+                 "symbol_similarity", "symbol_mutual"]}  # ,  "granger","granger_partial_r"]}

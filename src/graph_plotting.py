@@ -31,7 +31,7 @@ def plotDiGraphViaGraphViz(n_nodes, ebunch, cmap, pos=None, node_labels=None):
 		node_labels = [str(i + 1) for i in range(n_nodes)]
 	file_ = os.path.join(PROJECT_DIR, 'output', 'temp', s_timestamp() + ".dot")
 	flag = ''
-	#flag = '\tsplines = true;\n'
+	# flag = '\tsplines = true;\n'
 	if pos is None:
 		pos = _posTree(getForwardLinks())
 		flag = '\tsplines = true;\n'
@@ -108,18 +108,40 @@ def _posTree(ebunch):
 	def getChildren(node):
 		return [to_node for from_node, to_node in ebunch if from_node == node]
 
-	def getChildrenPosRec(parent, parent_pos, res):
+	def getChildrenPosRec(parent, y, x_min, x_max):
 		children = getChildren(parent)
 		n = len(children)
 		if n == 0:
 			return
-		if n == 1:
-			res.update({children[0]: (parent_pos[0], parent_pos[1] - vspace)})
 		else:
-			res.update({child: (parent_pos[0] - 1 + 2.0 / (n - 1) * i, parent_pos[1] - vspace) for i, child in
-			            enumerate(children)})
-		for child in children:
-			getChildrenPosRec(child, res[child], res)
-
-	getChildrenPosRec(root, res[root], res)
+			x_min_child = x_min
+			for child in children:
+				x_max_child = x_min_child + leaves_count(ebunch, child)
+				getChildrenPosRec(child, y - vspace, x_min_child, x_max_child)
+				res.update({child: ((x_min_child + x_max_child)  / 2, y)})
+				x_min_child = x_max_child
+	lcount = leaves_count(ebunch,root)
+	getChildrenPosRec(root, -2.0*vspace, -lcount/2.0,lcount/2.0)
 	return res
+
+
+def leaves_count(ebunch, current_node):
+	def getChildren(node):
+		return [to_node for from_node, to_node in ebunch if from_node == node]
+
+	if len(getChildren(current_node)) == 0:
+		return 1
+	return sum([leaves_count(ebunch, child) for child in getChildren(current_node)])
+
+
+def _inorder_traversal(ebunch, current_node, current_level, res):
+	def getChildren(node):
+		return [to_node for from_node, to_node in ebunch if from_node == node]
+
+	children = getChildren(current_node)
+	for child in children:
+		_inorder_traversal(ebunch, child, current_level + 1, res)
+	if not current_level in res:
+		res[current_level] = []
+	res[current_level].append(current_node)
+	return

@@ -1,3 +1,5 @@
+import numpy as np
+
 from prediction import Prediction
 
 
@@ -10,7 +12,7 @@ class SingleSeriesPredictor:
 		self.correlation_metric = correlation_metric
 		self.time_sampler = time_sampler
 
-	def predict(self, instance, time_series_idx):
+	def predictSingleSeries(self, instance, time_series_idx):
 		'''
 		:param instance: an object of type Instance
 		:param time_series_idx: which time_series to use for prediction
@@ -19,6 +21,28 @@ class SingleSeriesPredictor:
 		istsv = instance.getViewForTimeSeries(time_series_idx, self.time_sampler)
 		y_pred = self.correlation_metric(istsv)
 		return Prediction(istsv.y, y_pred, self)
+
+	def predictAllSeriesCombined(self, instance):
+		y_true, y_pred = [], []
+		for time_series_idx in range(instance.n_time_series):
+			istsv = instance.getViewForTimeSeries(time_series_idx, self.time_sampler)
+			y_true.extend(np.asarray(istsv.y).tolist())
+			y_pred.extend(np.asarray(self.correlation_metric(istsv).flatten()).tolist())
+		return Prediction(y_true, y_pred, self)
+
+	def predictAllInstancesCombined(self, dataset,time_series_idx):
+		y_true, y_pred = [], []
+		for instance_idx in range(dataset.n_instances):
+			instance = dataset.get(instance_idx)
+			istsv = instance.getViewForTimeSeries(time_series_idx, self.time_sampler)
+			y_true.extend(np.asarray(istsv.y).tolist())
+			temp =  self.correlation_metric(istsv)
+			n,_ =temp.shape
+			for i in range(n):
+				temp[i,i] = 0.0
+			y_pred.extend(np.asarray(temp.flatten()).tolist())
+		return Prediction(y_true, y_pred, self)
+
 
 	def __str__(self):
 		return str(self.correlation_metric)
