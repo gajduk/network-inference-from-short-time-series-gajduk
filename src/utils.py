@@ -3,6 +3,7 @@ import os
 import random
 import string
 import warnings
+import time
 from math import sqrt
 
 import numpy as np
@@ -14,6 +15,18 @@ OUTPUT_DIR = os.path.join(PROJECT_DIR,"output")
 s_timestamp_prefix = ""
 
 debug = False
+
+class Timer(object):
+    def __init__(self, name=None):
+        self.name = name
+
+    def __enter__(self):
+        self.tstart = time.time()
+
+    def __exit__(self, type, value, traceback):
+        if self.name:
+            print '[%s]' % self.name,
+        print 'Elapsed: %s' % (time.time() - self.tstart)
 
 def s_timestamp():
 	return s_timestamp_prefix + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in

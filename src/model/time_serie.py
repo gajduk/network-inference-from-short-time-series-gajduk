@@ -19,12 +19,16 @@ class TimeSerieSampler:
 		if times is None:
 			if n_time_points < 1 or n_time_points > 100:
 				n_time_points = 10
+		else:
+			n_time_points = len(times)
 		self.times = times
 		self.n_time_points = n_time_points
 
 	def sample(self, time_serie):
 		if self.times is None:
 			times = np.linspace(0, np.max(time_serie.t), self.n_time_points)
+		else:
+			times = self.times
 		times_idxs = [min(binary_search(time_serie.t, t), len(time_serie.t) - 1) for t in times]
 		new_x = np.zeros((self.n_time_points, time_serie.x.shape[1]))
 		for i, time_idx in enumerate(times_idxs):

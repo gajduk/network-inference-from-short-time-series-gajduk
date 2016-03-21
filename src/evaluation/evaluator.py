@@ -25,7 +25,7 @@ class Evaluator:
 		return roc_auc,fpr,tpr
 
 def evaluateAllMethods(dataset):
-	time_sampler = TimeSerieSampler(n_time_points=20)
+	time_sampler = TimeSerieSampler(times=[i*.2 for i in range(21)])
 	with open(path.join(OUTPUT_DIR,"evaluation","example1_nodes_evaluation.csv"),"w") as pout:
 		pout.write(' ,'+','.join(five_pin_setups)+'\n')
 		for method in good_methods:

@@ -158,12 +158,112 @@ from symbolic import symbolSequenceSimilarity, mutualInformationOfSymbols
 
 
 def g_generator(n_harmonics=10):
+	pi = np.pi
+	hw = 10.0
 	def coef_generator():
 		r = random.random()
 		return math.pow(10, r * 2.00432137) - 1.0
 
-	a = np.matrix([coef_generator() for i in range(n_harmonics)])
-	b = np.matrix([coef_generator() for i in range(n_harmonics)])
+	a = np.matrix([coef_generator() for _ in range(n_harmonics)])
+	b = np.matrix([coef_generator() for _ in range(n_harmonics)])
+	k = np.matrix([i + 1 for i in range(n_harmonics)])
+	def g(x):
+		x_norm = (x+hw)/(2.0*hw)
+		temp = np.sum(np.multiply(a,np.sin(k*pi*x_norm)) + np.multiply(b,np.cos(k*pi*x_norm)))
+		temp = temp/np.sum(a+b)*10.0
+		return temp
+
+	return g
+
+
+def example1(instance):
+	x = instance.x
+	N = instance.n_nodes
+	L = instance.n_time_points
+	A0 = np.array(instance.y.reshape((N,N)))
+	xx,dx,f_F,h_F = np.zeros((N,L-1)),np.zeros((N,L-1)),np.zeros((N,L-1)),np.zeros((N,L-1))
+	tau = 0.2
+	R = 1
+	import time
+
+	def f(x):
+		return - x
+
+	def h(x):
+		return math.tanh(x)
+
+	for i in range(N):
+		for k in range(L-1):
+			xx[i][k] = ( x[i][k] + x[i][k+1] ) / 2.0
+			dx[i][k] = ( x[i][k+1] - x[i][k] )
+			f_F[i][k] = f(xx[i][k])
+			h_F[i][k] = h(xx[i][k])
+
+
+	min_delta = 100000
+	reconstructed_A = -1
+	triple_for,inversion,normalization_ = 0.0,0.0,0.0
+
+	for iter_ in range(100000):
+		if iter_ % 500 == 0:
+			print iter_
+			print triple_for,inversion,normalization_
+			print min_delta
+		t = time.time()
+		g = g_generator()
+		g_F = np.zeros((N,L-1))
+
+		for i in range(N):
+			for k in range(L-1):
+				g_F[i][k] = g(xx[i][k])
+
+		B, C, E = np.zeros((N,N)),np.zeros((N,N)),np.zeros((N,N))
+		for i in range(N):
+			for j in range(N):
+				B[i][j] = np.sum(np.multiply(g_F[i][:],dx[j][:])) / ( tau * (L-1) * R)
+				C[i][j] = np.sum(np.multiply(g_F[i][:],f_F[j][:]))  / ( 1.0 * (L-1) * R)
+				E[i][j] = np.sum(np.multiply(g_F[i][:],h_F[j][:])) / ( 1.0 * (L-1) * R)
+		elapsed = time.time() - t
+		triple_for += elapsed
+		t = time.time()
+		A = np.linalg.inv(E)*(B - C)
+		elapsed = time.time() - t
+		inversion += elapsed
+		#A = ((A-np.min(A[:]))/(np.max(A[:])-np.min(A[:]))-0.5)*20
+
+		t = time.time()
+		delta_A = 0.0
+		normalization = 0
+		for i in range(N):
+			for j in range(N):
+				delta_A += (A[i][j]-A0[i][j])**2
+				normalization += A0[i][j]**2
+		delta_A = math.sqrt(delta_A/normalization)
+		if delta_A < min_delta:
+			min_delta = delta_A
+			reconstructed_A = A
+		elapsed = time.time() - t
+		inversion += elapsed
+	import matplotlib.pylab as plt
+	plt.subplot(1,3,1)
+	plt.set_cmap('bwr')
+	plt.imshow(A0,interpolation='none', vmin=-10, vmax=10)
+	plt.subplot(1,3,2)
+	plt.set_cmap('bwr')
+	plt.imshow(reconstructed_A,interpolation='none', vmin=-10, vmax=10)
+	plt.subplot(1,3,3)
+	plt.set_cmap('bwr')
+	plt.imshow(np.abs(reconstructed_A-A0),interpolation='none', vmin=-10, vmax=10)
+	plt.show()
+
+@deprecated
+def g_generator_old(n_harmonics=10):
+	def coef_generator():
+		r = random.random()
+		return math.pow(10, r * 2.00432137) - 1.0
+
+	a = np.matrix([coef_generator() for _ in range(n_harmonics)])
+	b = np.matrix([coef_generator() for _ in range(n_harmonics)])
 	k = np.matrix([i + 1 for i in range(n_harmonics)])
 
 	def g(x):
@@ -171,8 +271,8 @@ def g_generator(n_harmonics=10):
 
 	return g
 
-
-def example1(instance):
+@deprecated
+def example1_old(instance):
 	x = instance.x
 	n = instance.n_nodes
 	L = instance.n_time_points
@@ -219,6 +319,8 @@ def example1(instance):
 	plt.set_cmap('bwr')
 	plt.imshow(reconstructed_R-A,interpolation='none')
 	plt.show()
+
+
 
 methods = {"holy_grail": holy_grail, "random": random_, "cross_correlation": cross_correlation, "iota": iota,
            "kendall": kendall, "granger": granger, "partial_corr": partial_corr, "granger_partial_r": granger_partial_r,
