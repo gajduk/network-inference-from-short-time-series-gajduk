@@ -43,8 +43,12 @@ class JsonDatasetReader:
 			for pin_simulation_result in temp:
 				t = np.array(pin_simulation_result['t'])
 				x = np.matrix(pin_simulation_result['y'])
-				ts = TimeSerie(t, x)
+				inhibit = 'unknown'
+				if 'inhibit' in pin_simulation_result:
+					inhibit = pin_simulation_result['inhibit']
+				ts = TimeSerie(t, x, inhibit)
 				time_series.append(ts)
+			time_series = sorted(time_series,key=lambda  ts : int(ts.inhibit.split('_')[1]) if len(ts.inhibit.split('_')) > 1 else 0)
 			instances.append(Instance(time_series, y, n_nodes))
 			count += 1
 			if count > n_instances:
@@ -53,9 +57,9 @@ class JsonDatasetReader:
 
 
 def main():
-	reader = JsonDatasetReader('example1.json.zip')
+	reader = JsonDatasetReader('example2.json.zip')
 	d = reader.getDataset(n_instances=100)
-	d.plotAll(TimeSerieSampler())
+	d.plotAll(TimeSerieSampler(n_time_points=21))
 
 
 if __name__ == "__main__":

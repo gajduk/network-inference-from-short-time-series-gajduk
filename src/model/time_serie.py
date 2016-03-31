@@ -57,8 +57,10 @@ class TimeSerie:
 	Stores a single time serie for an unspecified graph.
 	t: time array
 	x: protein activities at different time points (matrix  [len(t) X num_nodes])
+	inhibit: which node was inhibited
 	'''
 
-	def __init__(self, t, x):
+	def __init__(self, t, x, inhibit = 'unknown'):
 		self.t = np.array(t)
 		self.x = x
+		self.inhibit = inhibit

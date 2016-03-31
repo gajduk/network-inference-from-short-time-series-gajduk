@@ -27,6 +27,7 @@ class Dataset:
 				for n_time_idx in range(instance.n_time_series):
 					istsv = instance.getViewForTimeSeries(n_time_idx, sampler)
 					istsv.plot()
+					plt.title(instance.time_series[n_time_idx].inhibit)
 					pdf.savefig(dpi=100)
 					plt.close()
 

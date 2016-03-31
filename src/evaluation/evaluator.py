@@ -42,7 +42,7 @@ def evaluateAllMethods(dataset):
 
 
 def main():
-	reader = JsonDatasetReader('example1.json.zip')
+	reader = JsonDatasetReader('example2.json.zip')
 	dataset = reader.getDataset(n_instances=1)
 	evaluateAllMethods(dataset)
 
