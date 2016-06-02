@@ -14,6 +14,7 @@ DEFAULT_DIR = join(PROJECT_DIR, 'data')
 
 
 class JsonDatasetReader:
+
 	def __init__(self, filename='initial_testing1.json.zip'):
 		self.filename = filename
 		self._json = self._readJson(join(DEFAULT_DIR, filename))
@@ -48,7 +49,11 @@ class JsonDatasetReader:
 					inhibit = pin_simulation_result['inhibit']
 				ts = TimeSerie(t, x, inhibit)
 				time_series.append(ts)
-			time_series = sorted(time_series,key=lambda  ts : int(ts.inhibit.split('_')[1]) if len(ts.inhibit.split('_')) > 1 else 0)
+			try:
+				time_series = sorted(time_series,key=lambda  ts : int(ts.inhibit.split('_')[1]) if len(ts.inhibit.split('_')) > 1 else 0)
+			except:
+				time_series = sorted(time_series,
+			                     key=lambda ts: ts.inhibit)
 			instances.append(Instance(time_series, y, n_nodes))
 			count += 1
 			if count > n_instances:

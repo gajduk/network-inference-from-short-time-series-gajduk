@@ -4,9 +4,14 @@ from src.utils import PROJECT_DIR, deprecated
 
 DEFAULT_DIR = join(PROJECT_DIR, 'data')
 
+from os.path import join
+
+from src.utils import PROJECT_DIR
+
+DEFAULT_DIR = join(PROJECT_DIR, 'data')
 
 class CsvDatasetReader:
-	@deprecated
+
 	def getDataset(self, filename):
 		'''
 		prefix = join(DEFAULT_DIR, filename)

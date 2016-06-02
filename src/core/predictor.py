@@ -36,11 +36,18 @@ class SingleSeriesPredictor:
 			instance = dataset.get(instance_idx)
 			istsv = instance.getViewForTimeSeries(time_series_idx, self.time_sampler)
 			y_true.extend(np.asarray(istsv.y).tolist())
-			temp =  self.correlation_metric(istsv)
-			n,_ =temp.shape
+			temp = self.correlation_metric(istsv)
+			n,_ = temp.shape
 			for i in range(n):
 				temp[i,i] = 0.0
 			y_pred.extend(np.asarray(temp.flatten()).tolist())
+		if len(y_true) == 1:
+			y_true = y_true[0]
+		else:
+			try:
+				y_true = [e[0] for e in y_true]
+			except:
+				pass
 		return Prediction(y_true, y_pred, self)
 
 

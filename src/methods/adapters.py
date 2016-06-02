@@ -17,11 +17,10 @@ def time_series_columnwise_wrapper(method):
 		data = np.zeros((i.n_time_points, i.n_nodes))
 		for idx_node in range(i.n_nodes):
 			x, _ = i.get(idx_node)
-			data[:, idx_node] = np.array(x).T
+			data[:, idx_node] = np.array(x).T.reshape((i.n_time_points,))
 		return method(data)
 
 	return inner
-
 
 def normalize_rowwise(x):
 	return np.absolute(x) / np.max(np.absolute(x), axis=1, keepdims=True)  # /np.std(x,axis=1,keepdims=True)

@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.utils import deprecated
 from src.graph_plotting import plotDiGraph_, plotDiGraphViaGraphViz
+from src.utils import deprecated
 
 
 class InstanceSingleTimeSeriesView:
@@ -81,7 +81,7 @@ class Instance:
 		Returns a view of the instance that holds the graph adjacency matrix and a sampled view of one of the time series
 		:param time_series_idx: which time serie to sample
 		:param sampler: defines how to sample the time series see TimeSerieSampler
-		:return: a InstanceSingleTimeSeriesView object
+		:return: a :class:`~src.model.InstanceSingleTimeSeriesView` object
 		'''
 		if time_series_idx < 0 or time_series_idx >= len(self.time_series):
 			raise ValueError(

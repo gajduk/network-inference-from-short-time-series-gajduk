@@ -25,12 +25,11 @@ class Evaluator:
 		return roc_auc,fpr,tpr
 
 def evaluateAllMethods(dataset):
-	time_sampler = TimeSerieSampler(times=[i*.2 for i in range(21)])
-	with open(path.join(OUTPUT_DIR,"evaluation","example1_nodes_evaluation.csv"),"w") as pout:
+	time_sampler = TimeSerieSampler(n_time_points=10)
+	with open(path.join(OUTPUT_DIR,"evaluation","2_inhibitions_top.json.csv"),"w") as pout:
 		pout.write(' ,'+','.join(five_pin_setups)+'\n')
 		for method in good_methods:
-			if not method == "example1":
-				continue
+			print method
 			pout.write(method)
 			predictor = SingleSeriesPredictor(good_methods[method], time_sampler)
 			evaluator = Evaluator()
@@ -42,7 +41,7 @@ def evaluateAllMethods(dataset):
 
 
 def main():
-	reader = JsonDatasetReader('example2.json.zip')
+	reader = JsonDatasetReader('2_inhibitions_top.json.zip')
 	dataset = reader.getDataset(n_instances=1)
 	evaluateAllMethods(dataset)
 
