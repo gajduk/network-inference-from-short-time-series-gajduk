@@ -8,11 +8,11 @@ def zoranDerivative(instance):
 		return - x
 
 	def h(x,i,k):
-		return x**5 / (1.0+x**5)
+		return math.tanh(x)
 
 	return network_reconstruction(instance.x.T,np.asarray(np.abs(np.reshape(instance.y,(instance.n_nodes,instance.n_nodes)))),f,h)
 
-def network_reconstruction(x,A0,f,h,n_tries=100,tau=0.2,R=1):
+def network_reconstruction(x,A0,f,h,n_tries=100,tau=0.3,R=1):
 	'''
 	:param x - time series data, a matrix with N columns and L rows, where N is the number of proteins and L is the number of time points
 	:param A0 - adjacency matrix N rows and N columns

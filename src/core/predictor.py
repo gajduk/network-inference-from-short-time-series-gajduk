@@ -30,7 +30,7 @@ class SingleSeriesPredictor:
 			y_pred.extend(np.asarray(self.correlation_metric(istsv).flatten()).tolist())
 		return Prediction(y_true, y_pred, self)
 
-	def predictAllInstancesCombined(self, dataset,time_series_idx):
+	def predictAllInstancesCombined(self, dataset, time_series_idx):
 		y_true, y_pred = [], []
 		for instance_idx in range(dataset.n_instances):
 			instance = dataset.get(instance_idx)

@@ -62,9 +62,9 @@ class JsonDatasetReader:
 
 
 def main():
-	reader = JsonDatasetReader('example2.json.zip')
-	d = reader.getDataset(n_instances=100)
-	d.plotAll(TimeSerieSampler(n_time_points=21))
+	reader = JsonDatasetReader('10_nodes_tanh_multiple_inhibitions.json.zip')
+	d = reader.getDataset(n_instances=10)
+	d.plotAll(TimeSerieSampler(n_time_points=31))
 
 
 if __name__ == "__main__":
