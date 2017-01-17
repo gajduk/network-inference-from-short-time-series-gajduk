@@ -1,6 +1,7 @@
 import numpy as np
 import statsmodels.tsa.stattools as sts
 from scipy import stats, linalg
+from scipy.signal import correlate
 from adapters import one_pair_at_a_time_wrapper, time_series_columnwise_wrapper
 
 @one_pair_at_a_time_wrapper
@@ -18,19 +19,37 @@ def granger(x1, x2):
 
 
 @one_pair_at_a_time_wrapper
-def cross_correlation(x1, x2):
+def cross_correlation_correct(x1,x2):
+	#temp = []
+	#for tau in range(-5,5):
+	#		temp.append(abs(cross_correlation_(x1,x2,tau)))
+	numpy_temp = [e for idx,e in enumerate(np.correlate(x1,x2,"same")) if not idx == 4]
+	max_val = max(numpy_temp)
+	max_idx = numpy_temp.index(max_val)
+	if max_idx >= 4:
+		return max_val
+	return 0
+
+def cross_correlation_(x1, x2,tau=0):
 	mean_x1, mean_x2 = np.mean(x1), np.mean(x2)
 	std_x1, std_x2 = np.std(x1), np.std(x2)
 	res = 0.0
+	n = len(x1)
 	if len(x1) == 1:
+		n = len(x1[0])
 		for i in range(len(x1[0])):
-			res += (x1[0][i]-mean_x1) * (x2[0][i]-mean_x2)
+			if i+tau >= 0 and i+tau < n:
+				res += (x1[0][i]-mean_x1) * (x2[0][i+tau]-mean_x2)
 	else:
 		for i in range(len(x1)):
-			res += (x1[i]-mean_x1) * (x2[i]-mean_x2)
+			if i+tau >= 0 and i+tau < n:
+				res += (x1[i]-mean_x1) * (x2[i+tau]-mean_x2)
 
 	return res / std_x1 / std_x2
 
+@one_pair_at_a_time_wrapper
+def cross_correlation(x1, x2):
+	return cross_correlation_(x1,x2,0)
 
 @one_pair_at_a_time_wrapper
 def iota(x1, x2):

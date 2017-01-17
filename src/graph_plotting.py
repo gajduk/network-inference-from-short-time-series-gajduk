@@ -30,8 +30,8 @@ def plotDiGraphViaGraphViz(n_nodes, ebunch, cmap, pos=None, node_labels=None):
 	if node_labels is None:
 		node_labels = [str(i + 1) for i in range(n_nodes)]
 	file_ = os.path.join(PROJECT_DIR, 'output', 'temp', s_timestamp() + ".dot")
-	flag = ''
-	# flag = '\tsplines = true;\n'
+	#flag = ''
+	flag = '\tsplines = true; overlap=true\n'
 	if pos is None:
 		pos = _posTree(getForwardLinks())
 		flag = '\tsplines = true;\n'
@@ -50,14 +50,9 @@ def plotDiGraphViaGraphViz(n_nodes, ebunch, cmap, pos=None, node_labels=None):
 		for from_node, to_node, weight in ebunch:
 			color = "black"
 			extra = ""
-			if from_node > to_node:
-				extra = ''
-				if weight < 0:
-					color = "red"
-					extra += ' arrowhead="tee"'
-				else:
-					color = "green"
-
+			if weight < 0:
+				color = "red"
+				extra += ' arrowhead="tee"'
 			pout.write(
 				'\t{0} -> {1} [color="{2}" {3}];\n'.format(node_labels[from_node], node_labels[to_node], color, extra))
 		pout.write('\tInput -> {0} [color="black"];\n'.format(node_labels[0]))
@@ -77,6 +72,41 @@ def plotDiGraphViaGraphViz(n_nodes, ebunch, cmap, pos=None, node_labels=None):
 	plt.imshow(img)
 	plt.axis('off')
 	return pos
+
+
+
+
+def plotDiGraphViaGraphVizASD(n_nodes, ebunch, cmap, pos=None, node_labels=None,method_symmetrical=True):
+	file_ = os.path.join(PROJECT_DIR, 'output', 'temp', s_timestamp() + ".dot")
+	flag = '\tsplines = true;\n'
+	with open(file_, 'w') as pout:
+		pout.write('digraph G {{\n'.format(n_nodes))
+		pout.write('\tsplines="curved";\n')
+		pout.write(flag)
+		for node_idx in range(n_nodes):
+			r, g, b, a = cmap(node_idx * 1.0 / n_nodes)
+
+			color = struct.pack('BBB', *(r * 255, g * 255, b * 255)).encode('hex')
+			pout.write(
+				'\t{0} [pos="{2},{3}!" shape=circle style=filled fillcolor="#{1}" width=.5  fixedsize=true];\n'.format(
+					node_labels[node_idx], color, pos[node_idx][0], pos[node_idx][1]))
+		for from_node, to_node, weight in ebunch:
+			color = "black"
+			extra = ""
+			if weight < 0:
+				color = "red"
+				if not method_symmetrical:
+					extra += ' arrowhead="tee"'
+			if method_symmetrical:
+				extra += ' arrowhead="none"'
+			pout.write(
+				'\t{0} -> {1} [color="{2}" {3}];\n'.format(node_labels[from_node], node_labels[to_node], color, extra))
+		pout.write('}\n')
+	out_file = file_ + ".png"
+	command = 'neato -Tpng "' + file_ + '" > "' + out_file
+	call(command, shell=True, env=os.environ)
+	return pos
+
 
 
 def rankTogether(ebunch):
